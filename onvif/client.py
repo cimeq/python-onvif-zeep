@@ -100,6 +100,13 @@ class ONVIFService(object):
             settings.strict = False
             settings.xml_huge_tree = True
             self.zeep_client = ClientType(wsdl=url, wsse=wsse, transport=transport, settings=settings)
+            self.zeep_client.set_ns_prefix('tds', 'http://www.onvif.org/ver10/device/wsdl')
+            self.zeep_client.set_ns_prefix('tev', 'http://www.onvif.org/ver10/events/wsdl')
+            self.zeep_client.set_ns_prefix('timg', 'http://www.onvif.org/ver20/imaging/wsdl')
+            self.zeep_client.set_ns_prefix('tmd', 'http://www.onvif.org/ver10/deviceIO/wsdl')
+            self.zeep_client.set_ns_prefix('tptz', 'http://www.onvif.org/ver20/ptz/wsdl')
+            self.zeep_client.set_ns_prefix('ttr', 'http://www.onvif.org/ver10/media/wsdl')
+            self.zeep_client.set_ns_prefix('ter', 'http://www.onvif.org/ver10/error')
         else:
             self.zeep_client = zeep_client
         self.ws_client = self.zeep_client.create_service(binding_name, self.xaddr)
@@ -111,7 +118,9 @@ class ONVIFService(object):
         self.encrypt = encrypt
         self.daemon = daemon
         self.dt_diff = dt_diff
-        self.create_type = lambda x: self.zeep_client.get_element('ns0:' + x)()
+        self.namespace = binding_name[1:binding_name.index("}")]
+        self._namespace_prefix = self._get_namespace_prefix(self.namespace)
+        self.create_type = lambda x: self.zeep_client.get_element(self._namespace_prefix + ':' + x)()
 
     @classmethod
     @safe_func
@@ -166,6 +175,11 @@ class ONVIFService(object):
         else:
             return self.service_wrapper(getattr(self.ws_client, name))
 
+	def _get_namespace_prefix(self, namespace):
+        for prefix, name in self.zeep_client.namespaces.items():
+            if name == namespace:
+                return prefix
+        return "ns0"
 
 class ONVIFCamera(object):
     '''
